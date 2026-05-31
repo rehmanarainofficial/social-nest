@@ -10,14 +10,14 @@ import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    MongooseModule.forRoot(process.env.MONGO_URL as string),
     UserModule,
     AuthModule,
     PostModule,
     CommentsModule,
-    MongooseModule.forRoot(process.env.MONGO_URL as string),
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
   ],
   controllers: [AppController],
   providers: [AppService],
