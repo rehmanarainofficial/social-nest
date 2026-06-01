@@ -6,7 +6,7 @@ import {
   IsStrongPassword,
 } from 'class-validator';
 
-export class SignupDto {
+export class LoginDto {
 
   @Transform(({ value }) => value.trim().toLowerCase())
   @IsString()

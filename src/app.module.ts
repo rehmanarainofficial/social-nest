@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
-import { PostModule } from './post/post.module';
 import { CommentsModule } from './comments/comments.module';
-import { MongooseModule } from '@nestjs/mongoose';
-import { ConfigModule } from '@nestjs/config';
+import { PostModule } from './post/post.module';
+import { UserModule } from './user/user.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -14,12 +15,14 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true,
     }),
     MongooseModule.forRoot(process.env.MONGO_URL as string),
+    MailModule,
     UserModule,
     AuthModule,
     PostModule,
     CommentsModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

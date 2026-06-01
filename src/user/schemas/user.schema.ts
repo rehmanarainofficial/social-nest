@@ -25,13 +25,13 @@ export class User {
   @Prop({ required: true, minlength: 6, select: false })
   password!: string;
 
-  @Prop({ default: '' })
+  @Prop({ default: '', type: String })
   avatar!: string;
 
-  @Prop({ default: '' })
+  @Prop({ default: '', type: String })
   coverImage!: string;
 
-  @Prop({ default: '' })
+  @Prop({ default: '', type: String })
   bio!: string;
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
@@ -40,11 +40,14 @@ export class User {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
   following!: Types.ObjectId[];
 
-  @Prop({ default: false })
-  isVerified!: boolean;
+  @Prop({ default: false, type: Boolean })
+  isEmailVerified!: boolean;
 
-  @Prop({ default: true })
-  isActive!: boolean;
+  @Prop({ default: null, type: String })
+  emailVerificationOtp!: string | null;
+
+  @Prop({ default: null, type: Date })
+  emailVerificationOtpExpires!: Date | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
