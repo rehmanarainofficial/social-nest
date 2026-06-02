@@ -41,6 +41,9 @@ importers:
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
       mongoose:
         specifier: ^9.6.3
         version: 9.6.3

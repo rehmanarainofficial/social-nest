@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
-import { verificationEmailTemplate } from './templates/verification.email';
+import { verificationEmailTemplate, verificationSuccessTemplate } from './templates/verification.email';
 
 @Injectable()
 export class MailService {
@@ -23,6 +23,15 @@ export class MailService {
             to,
             subject: 'Verify your email',
             html: verificationEmailTemplate(otp as string),
+        });
+    }
+
+    async sendVerificationSuccessEmail(to: string, name: string) {
+        return await this.transporter.sendMail({
+            from: `"Nest Social Media" <${process.env.EMAIL_USER as string}>`,
+            to,
+            subject: 'Email Verified',
+            html: verificationSuccessTemplate(name as string),
         });
     }
 }

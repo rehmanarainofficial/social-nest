@@ -1,10 +1,11 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { CreateUserData, SignupDto } from './dto/create-auth.dto';
+import { SignupDto } from './dto/create-auth.dto';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login-auth.dto';
 import { MailService } from '../mail/mail.service';
+import { OtpVerifyDto } from './dto/otp-auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -13,7 +14,7 @@ export class AuthService {
     private jwtService: JwtService,
     private mailService: MailService,
   ) { }
-  async register(createUserData: CreateUserData) {
+  async register(createUserData: SignupDto) {
     const userFind = await this.userService.findByEmail(createUserData.email);
 
     if (userFind) {
@@ -43,9 +44,47 @@ export class AuthService {
     if (!userFind) throw new UnauthorizedException('Invalid email');
     let passwordMatch = await bcrypt.compare(loginDto.password, userFind.password);
     if (!passwordMatch) throw new UnauthorizedException('Invalid password');
-    let payload = { email: userFind.email, sub: userFind.id };
+    let payload = { email: userFind.email, userId: userFind._id.toString() };
     return {
-      access_token: this.jwtService.sign(payload, { secret: process.env.JWT_SECRET, expiresIn: '1d' }),
+      access_token: await this.jwtService.signAsync(payload),
+    };
+  }
+
+
+  async otpVerify(otpVerifyDto: OtpVerifyDto) {
+    const userFind = await this.userService.findByEmail(otpVerifyDto.email);
+
+    if (!userFind) {
+      throw new UnauthorizedException('Invalid email');
+    }
+
+    if (userFind.isEmailVerified) {
+      return {
+        message: 'Email already verified',
+      };
+    }
+
+    if (
+      !userFind.emailVerificationOtpExpires ||
+      userFind.emailVerificationOtpExpires < new Date()
+    ) {
+      throw new UnauthorizedException('Otp expired');
+    }
+
+    if (userFind.emailVerificationOtp !== otpVerifyDto.otp) {
+      throw new UnauthorizedException('Invalid otp');
+    }
+
+    userFind.emailVerificationOtp = null;
+    userFind.emailVerificationOtpExpires = null;
+    userFind.isEmailVerified = true;
+
+    await userFind.save();
+
+    await this.mailService.sendVerificationSuccessEmail(userFind.email, userFind.name);
+
+    return {
+      message: 'Email verified successfully',
     };
   }
 }
