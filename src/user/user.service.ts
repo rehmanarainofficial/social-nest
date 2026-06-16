@@ -1,5 +1,5 @@
 import { SignupTypes } from './types/user.type';
-import { Injectable, Request } from '@nestjs/common';
+import { BadRequestException, Injectable, Request } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { Model } from 'mongoose';
@@ -16,20 +16,45 @@ export class UserService {
     return newUser;
   }
 
-  findAll() {
-    return this.userModel.find().exec();
+  async findAll() {
+    const allUsers = await this.userModel.find().select('-password').exec();
+    if (!allUsers) {
+      throw new BadRequestException('Users not found');
+    }
+    return allUsers;
   }
 
-  findProfile(user) {
+  async findProfile(user) {
     const userId = user.userId;
-    return this.userModel.findById(userId).exec();
+    if (!userId) {
+      throw new BadRequestException('Invalid user ID');
+    }
+    const findProfileUser = this.userModel.findById(userId).select('-password').exec();
+    if (!findProfileUser) {
+      throw new BadRequestException('User not found');
+    }
+    return findProfileUser;
   }
 
   findOne(id: string) {
-    return this.userModel.findById(id).exec();
+    if (!id) {
+      throw new BadRequestException('Invalid user ID');
+    }
+    const findOneUser = this.userModel.findById(id).select('-password').exec();
+    if (!findOneUser) {
+      throw new BadRequestException('User not found');
+    }
+    return findOneUser;
   }
 
   remove(id: string) {
-    return this.userModel.findByIdAndDelete(id).exec();
+    if (!id) {
+      throw new BadRequestException('Invalid user ID');
+    }
+    const deleteUser = this.userModel.findByIdAndDelete(id).select('-password').exec();
+    if (!deleteUser) {
+      throw new BadRequestException('User not found');
+    }
+    return deleteUser;
   }
 }
