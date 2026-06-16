@@ -1,18 +1,53 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+  BadRequestException,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
-import { UpdatePostDto } from './dto/update-post.dto';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('post')
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
-  @Post()
-  create(@Body() createPostDto: CreatePostDto) {
-    return this.postService.create(createPostDto);
+  @Post("add")
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('image'))
+  create(
+    @Body() createPostDto: CreatePostDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: 'image/*' }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+    @Req() req,
+  ) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    let user = req.user;
+    return this.postService.create(user.userId, createPostDto, file);
   }
 
-  @Get()
+  @Get("all")
+  @UseGuards(AuthGuard)
   findAll() {
     return this.postService.findAll();
   }
@@ -20,11 +55,6 @@ export class PostController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.postService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
-    return this.postService.update(+id, updatePostDto);
   }
 
   @Delete(':id')

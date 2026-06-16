@@ -5,7 +5,7 @@ import { User, UserDocument } from './schemas/user.schema';
 import { Model } from 'mongoose';
 @Injectable()
 export class UserService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) { }
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async findByEmail(email: string) {
     return this.userModel.findOne({ email }).select('+password').exec();
@@ -17,7 +17,11 @@ export class UserService {
   }
 
   async findAll() {
-    const allUsers = await this.userModel.find().select('-password').exec();
+    const allUsers: UserDocument[] = await this.userModel
+      .find()
+      .select('-password')
+      .populate('savedPosts', 'image caption')
+      .exec();
     if (!allUsers) {
       throw new BadRequestException('Users not found');
     }
@@ -25,33 +29,42 @@ export class UserService {
   }
 
   async findProfile(user) {
-    const userId = user.userId;
+    const userId = user?.userId;
     if (!userId) {
       throw new BadRequestException('Invalid user ID');
     }
-    const findProfileUser = this.userModel.findById(userId).select('-password').exec();
+    const findProfileUser: UserDocument | null = await this.userModel
+      .findById(userId)
+      .select('-password')
+      .exec();
     if (!findProfileUser) {
       throw new BadRequestException('User not found');
     }
     return findProfileUser;
   }
 
-  findOne(id: string) {
+  async findOne(id: string) {
     if (!id) {
       throw new BadRequestException('Invalid user ID');
     }
-    const findOneUser = this.userModel.findById(id).select('-password').exec();
+    const findOneUser: UserDocument | null = await this.userModel
+      .findById(id)
+      .select('-password')
+      .exec();
     if (!findOneUser) {
       throw new BadRequestException('User not found');
     }
     return findOneUser;
   }
 
-  remove(id: string) {
+  async remove(id: string) {
     if (!id) {
       throw new BadRequestException('Invalid user ID');
     }
-    const deleteUser = this.userModel.findByIdAndDelete(id).select('-password').exec();
+    const deleteUser: UserDocument | null = await this.userModel
+      .findByIdAndDelete(id)
+      .select('-password')
+      .exec();
     if (!deleteUser) {
       throw new BadRequestException('User not found');
     }

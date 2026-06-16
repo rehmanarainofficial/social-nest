@@ -11,14 +11,6 @@ export class User {
   })
   name!: string;
 
-  @Prop({
-    unique: true,
-    lowercase: true,
-    trim: true,
-    sparse: true,
-  })
-  username!: string;
-
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email!: string;
 
@@ -39,6 +31,9 @@ export class User {
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
   following!: Types.ObjectId[];
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Post' }], default: [] })
+  savedPosts!: Types.ObjectId[];
 
   @Prop({ default: false, type: Boolean })
   isEmailVerified!: boolean;

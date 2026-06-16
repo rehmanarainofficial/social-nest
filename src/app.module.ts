@@ -8,6 +8,7 @@ import { CommentsModule } from './comments/comments.module';
 import { PostModule } from './post/post.module';
 import { UserModule } from './user/user.module';
 import { MailModule } from './mail/mail.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { MailModule } from './mail/mail.module';
     PostModule,
     CommentsModule,
     MailModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
