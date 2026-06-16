@@ -1,11 +1,21 @@
 import { SignupTypes } from './types/user.type';
-import { BadRequestException, Injectable, Request } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { Model } from 'mongoose';
+import { Post, PostDocument } from '../post/schemas/post.schema';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 @Injectable()
 export class UserService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Post.name) private postModel: Model<PostDocument>,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   async findByEmail(email: string) {
     return this.userModel.findOne({ email }).select('+password').exec();
@@ -57,17 +67,44 @@ export class UserService {
     return findOneUser;
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
     if (!id) {
       throw new BadRequestException('Invalid user ID');
     }
-    const deleteUser: UserDocument | null = await this.userModel
-      .findByIdAndDelete(id)
-      .select('-password')
-      .exec();
-    if (!deleteUser) {
-      throw new BadRequestException('User not found');
+
+    const user = await this.userModel.findById(id).select('-password').exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
-    return deleteUser;
+
+    if (user._id.toString() !== userId || !user.isEmailVerified) {
+      throw new BadRequestException('You are not authorized to delete this post');
+    }
+
+    const posts = await this.postModel.find({ owner: id }).exec();
+
+    for (const post of posts) {
+      if (post.image?.publicId) {
+        await this.cloudinaryService.deleteFile(post.image.publicId);
+      }
+    }
+
+    await this.postModel.deleteMany({ owner: id });
+
+    await this.postModel.updateMany(
+      {},
+      {
+        $pull: {
+          likes: id,
+        },
+      },
+    );
+
+    await this.userModel.findByIdAndDelete(id);
+
+    return {
+      message: 'User and related data deleted successfully',
+    };
   }
 }

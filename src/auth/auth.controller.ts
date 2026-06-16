@@ -18,7 +18,7 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  @Post('opt-verify')
+  @Post('otp-verify')
   optVerify(@Body() optVerifyDto: OtpVerifyDto) {
     return this.authService.otpVerify(optVerifyDto);
   }

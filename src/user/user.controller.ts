@@ -17,15 +17,19 @@ export class UserController {
     return this.userService.findProfile(user);
   }
 
+
   @Get(':id')
+  @UseGuards(AuthGuard)
   findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
   }
 
 
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(id);
+  @Delete('delete/:id')
+  @UseGuards(AuthGuard)
+  remove(@Param('id') id: string, @Req() req) {
+    let user = req.user;
+    return this.userService.remove(id, user.userId);
   }
 }

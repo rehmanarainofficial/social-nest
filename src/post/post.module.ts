@@ -6,14 +6,17 @@ import { Post, PostSchema } from './schemas/post.schema';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { User, UserSchema } from '../user/schemas/user.schema';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Post.name, schema: PostSchema }]),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    UserModule,
     CloudinaryModule,
   ],
   controllers: [PostController],
   providers: [PostService, AuthGuard],
+  exports: [PostService]
 })
 export class PostModule {}

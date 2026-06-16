@@ -58,7 +58,9 @@ export class PostController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.postService.remove(+id);
+  @UseGuards(AuthGuard)
+  remove(@Param('id') id: string, @Req() req) {
+    let user = req.user;
+    return this.postService.remove(id, user.userId);
   }
 }
