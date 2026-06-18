@@ -35,7 +35,7 @@ export class AuthService {
     await this.mailService.sendEmail(createUserData.email, otp);
 
     return {
-      message: 'User registered successfully. Please verify your email.',
+      message: 'Please check your email for verification.',
       user: newUser,
     };
   }
