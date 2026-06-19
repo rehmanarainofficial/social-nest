@@ -1,19 +1,23 @@
-import { SignupTypes } from './types/user.type';
+import { SignupTypes } from '../types/user.type';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User, UserDocument } from './schemas/user.schema';
-import { Model } from 'mongoose';
-import { Post, PostDocument } from '../post/schemas/post.schema';
-import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { User, UserDocument } from '../schemas/user.schema';
+import { Model, Types } from 'mongoose';
+import { PostService } from '../../post/services/post.service';
+import { CloudinaryService } from '../../cloudinary/services/cloudinary.service';
+
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(Post.name) private postModel: Model<PostDocument>,
+    @Inject(forwardRef(() => PostService))
+    private readonly postService: PostService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -26,19 +30,42 @@ export class UserService {
     return newUser;
   }
 
+  async update(id: string, updateData: Partial<User>) {
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(id, updateData, { new: true })
+      .exec();
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+    return updatedUser;
+  }
+
+  async addSavedPost(userId: string, postId: Types.ObjectId) {
+    await this.userModel
+      .findByIdAndUpdate(userId, {
+        $push: { savedPosts: postId },
+      })
+      .exec();
+  }
+
+  async removeSavedPost(userId: string, postId: string) {
+    await this.userModel
+      .findByIdAndUpdate(userId, {
+        $pull: { savedPosts: new Types.ObjectId(postId) },
+      })
+      .exec();
+  }
+
   async findAll() {
     const allUsers: UserDocument[] = await this.userModel
       .find()
       .select('-password')
       .populate('savedPosts', 'image caption')
       .exec();
-    if (!allUsers) {
-      throw new BadRequestException('Users not found');
-    }
     return allUsers;
   }
 
-  async findProfile(user) {
+  async findProfile(user: { userId: string; email: string }) {
     const userId = user?.userId;
     if (!userId) {
       throw new BadRequestException('Invalid user ID');
@@ -48,7 +75,7 @@ export class UserService {
       .select('-password')
       .exec();
     if (!findProfileUser) {
-      throw new BadRequestException('User not found');
+      throw new NotFoundException('User not found');
     }
     return findProfileUser;
   }
@@ -62,7 +89,7 @@ export class UserService {
       .select('-password')
       .exec();
     if (!findOneUser) {
-      throw new BadRequestException('User not found');
+      throw new NotFoundException('User not found');
     }
     return findOneUser;
   }
@@ -79,29 +106,15 @@ export class UserService {
     }
 
     if (user._id.toString() !== userId || !user.isEmailVerified) {
-      throw new BadRequestException('You are not authorized to delete this post');
+      throw new BadRequestException(
+        'You are not authorized to delete this user',
+      );
     }
 
-    const posts = await this.postModel.find({ owner: id }).exec();
+    await this.postService.deleteManyByOwner(id);
+    await this.postService.removeLikesForUser(id);
 
-    for (const post of posts) {
-      if (post.image?.publicId) {
-        await this.cloudinaryService.deleteFile(post.image.publicId);
-      }
-    }
-
-    await this.postModel.deleteMany({ owner: id });
-
-    await this.postModel.updateMany(
-      {},
-      {
-        $pull: {
-          likes: id,
-        },
-      },
-    );
-
-    await this.userModel.findByIdAndDelete(id);
+    await this.userModel.findByIdAndDelete(id).exec();
 
     return {
       message: 'User and related data deleted successfully',

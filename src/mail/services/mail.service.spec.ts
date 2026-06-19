@@ -1,0 +1,33 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { MailService } from './mail.service';
+import { ConfigService } from '@nestjs/config';
+
+describe('MailService', () => {
+  let service: MailService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        MailService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockImplementation((key: string) => {
+              if (key === 'EMAIL_HOST') return 'localhost';
+              if (key === 'EMAIL_PORT') return '587';
+              if (key === 'EMAIL_USER') return 'test@example.com';
+              if (key === 'EMAIL_PASS') return 'password';
+              return null;
+            }),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<MailService>(MailService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+});

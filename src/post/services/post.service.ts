@@ -2,24 +2,27 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
-import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CloudinaryService } from '../../cloudinary/services/cloudinary.service';
 import { InjectModel } from '@nestjs/mongoose';
-import { Post, PostDocument } from './schemas/post.schema';
+import { Post, PostDocument } from '../schemas/post.schema';
 import { Model, Types } from 'mongoose';
-import { CreatePostDto } from './dto/create-post.dto';
-import { User, UserDocument } from '../user/schemas/user.schema';
+import { CreatePostDto } from '../dto/create-post.dto';
+import { UserService } from '../../user/services/user.service';
 
 @Injectable()
 export class PostService {
   constructor(
     private readonly cloudinaryService: CloudinaryService,
     @InjectModel(Post.name) private postModel: Model<PostDocument>,
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
   ) {}
 
   async create(
-    owner: Types.ObjectId,
+    ownerId: string,
     createPostDto: CreatePostDto,
     file: Express.Multer.File,
   ) {
@@ -27,12 +30,10 @@ export class PostService {
     const newPost = await this.postModel.create({
       caption: createPostDto.caption,
       image: { url: upload.secure_url, publicId: upload.public_id },
-      owner: owner,
+      owner: new Types.ObjectId(ownerId),
     });
 
-    await this.userModel.findByIdAndUpdate(owner, {
-      $push: { savedPosts: newPost._id },
-    });
+    await this.userService.addSavedPost(ownerId, newPost._id);
     return newPost;
   }
 
@@ -48,8 +49,38 @@ export class PostService {
     return allPosts;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} post`;
+  async findOne(id: string) {
+    const post = await this.postModel
+      .findById(id)
+      .populate('owner', 'name email')
+      .exec();
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+    return post;
+  }
+
+  async deleteManyByOwner(ownerId: string) {
+    const posts = await this.postModel.find({ owner: ownerId }).exec();
+    for (const post of posts) {
+      if (post.image?.publicId) {
+        await this.cloudinaryService.deleteFile(post.image.publicId);
+      }
+    }
+    await this.postModel.deleteMany({ owner: ownerId }).exec();
+  }
+
+  async removeLikesForUser(userId: string) {
+    await this.postModel
+      .updateMany(
+        {},
+        {
+          $pull: {
+            likes: new Types.ObjectId(userId),
+          },
+        },
+      )
+      .exec();
   }
 
   async remove(postId: string, userId: string) {
@@ -69,9 +100,7 @@ export class PostService {
     await this.cloudinaryService.deleteFile(findPost.image.publicId);
     await this.postModel.findByIdAndDelete(postId).exec();
 
-    await this.userModel.findByIdAndUpdate(userId, {
-      $pull: { savedPosts: postId },
-    });
+    await this.userService.removeSavedPost(userId, postId);
 
     return 'Post deleted successfully';
   }

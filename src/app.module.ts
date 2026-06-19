@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { validate } from './config/env.validation';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -13,16 +14,22 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate,
     }),
-    MongooseModule.forRoot(process.env.MONGO_URL as string),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGO_URL'),
+      }),
+    }),
     MailModule,
     UserModule,
     AuthModule,
     PostModule,
-    MailModule,
     CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

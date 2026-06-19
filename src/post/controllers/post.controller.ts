@@ -14,16 +14,17 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { PostService } from './post.service';
-import { CreatePostDto } from './dto/create-post.dto';
-import { AuthGuard } from '../auth/guards/auth.guard';
+import { PostService } from '../services/post.service';
+import { CreatePostDto } from '../dto/create-post.dto';
+import { AuthGuard } from '../../auth/guards/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Request } from 'express';
 
-@Controller('post')
+@Controller('posts')
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
-  @Post("add")
+  @Post()
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('image'))
   create(
@@ -37,30 +38,34 @@ export class PostController {
       }),
     )
     file: Express.Multer.File,
-    @Req() req,
+    @Req() req: Request & { user: { userId: string; email: string } },
   ) {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    let user = req.user;
+    const user = req.user;
     return this.postService.create(user.userId, createPostDto, file);
   }
 
-  @Get("all")
+  @Get()
   @UseGuards(AuthGuard)
   findAll() {
     return this.postService.findAll();
   }
 
   @Get(':id')
+  @UseGuards(AuthGuard)
   findOne(@Param('id') id: string) {
-    return this.postService.findOne(+id);
+    return this.postService.findOne(id);
   }
 
   @Delete(':id')
   @UseGuards(AuthGuard)
-  remove(@Param('id') id: string, @Req() req) {
-    let user = req.user;
+  remove(
+    @Param('id') id: string,
+    @Req() req: Request & { user: { userId: string; email: string } },
+  ) {
+    const user = req.user;
     return this.postService.remove(id, user.userId);
   }
 }

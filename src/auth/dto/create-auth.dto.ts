@@ -1,4 +1,4 @@
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -11,17 +11,19 @@ export class SignupDto {
   @IsNotEmpty()
   name!: string;
 
-  @Transform(({ value }) => value.trim().toLowerCase())
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : '',
+  )
   @IsString()
   @IsNotEmpty()
   @IsEmail()
   email!: string;
 
-  @Transform(({ value }) => value.trim())
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : '',
+  )
   @IsString()
   @IsNotEmpty()
   @IsStrongPassword()
   password!: string;
 }
-
-

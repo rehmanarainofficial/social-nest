@@ -7,14 +7,17 @@ import {
 } from 'class-validator';
 
 export class LoginDto {
-
-  @Transform(({ value }) => value.trim().toLowerCase())
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : '',
+  )
   @IsString()
   @IsNotEmpty()
   @IsEmail()
   email!: string;
 
-  @Transform(({ value }) => value.trim())
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : '',
+  )
   @IsString()
   @IsNotEmpty()
   @IsStrongPassword()

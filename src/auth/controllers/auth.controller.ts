@@ -1,12 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login-auth.dto';
-import { SignupDto } from './dto/create-auth.dto';
-import { OtpVerifyDto } from './dto/otp-auth.dto';
+import { Controller, Post, Body } from '@nestjs/common';
+import { AuthService } from '../services/auth.service';
+import { LoginDto } from '../dto/login-auth.dto';
+import { SignupDto } from '../dto/create-auth.dto';
+import { OtpVerifyDto } from '../dto/otp-auth.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('register')
   register(@Body() signupDto: SignupDto) {

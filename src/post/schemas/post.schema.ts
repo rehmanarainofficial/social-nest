@@ -20,7 +20,7 @@ export class Post {
   owner!: Types.ObjectId;
   @Prop({ default: [], type: [{ type: Types.ObjectId, ref: 'User' }] })
   likes!: Types.ObjectId[];
-  @Prop({ default: [], type: [{ type: Types.ObjectId, ref: 'Comment' }] })
+  @Prop({ default: [], type: [{ type: Types.ObjectId }] })
   comments!: Types.ObjectId[];
 }
 

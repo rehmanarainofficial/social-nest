@@ -51,7 +51,6 @@ export const verificationEmailTemplate = (otp: string): string => {
   `;
 };
 
-
 export const verificationSuccessTemplate = (name: string): string => {
   return `
     <!DOCTYPE html>
